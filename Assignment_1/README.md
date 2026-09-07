@@ -40,7 +40,18 @@ l 3 4
 
 Note that indexing starts with 1 in OBJ files, so remember to shift indices accordingly.
 
+##### Setup
 
+This project needs the Eigen library. Place the `eigen` folder **next to** this assignment folder, not inside it:
+
+```
+your-workspace/
+├── ext/
+│   └── eigen/       <- Eigen library goes here
+└── assignment1/     <- this repo
+```
+
+If CMake gives an error about missing Eigen headers, check that your folders are arranged this way.
 
 Ex.1: Point In Polygon [7pt]
 ----------------------

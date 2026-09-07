@@ -9,8 +9,13 @@ endif()
 
 # Project sources
 add_executable(${PROJECT_NAME} src/main.cpp)
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../ext/eigen")
+find_package(Eigen3 3.3 QUIET NO_MODULE HINTS "${CMAKE_CURRENT_SOURCE_DIR}/../ext/eigen")
 
+if(TARGET Eigen3::Eigen)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Eigen3::Eigen)
+else()
+    target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../ext/eigen")
+endif()
 
 # Use C++11 version of the standard
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON)
