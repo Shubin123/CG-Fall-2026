@@ -109,6 +109,10 @@ There will be 4 assignments, equally weighted. Late assignments will be graded o
 [Rules](Rules.md)
 
 [Assigment 1 - Optional](Assignment_1/README.md)</br>
+Assigment 2</br>
+Assigment 3</br>
+Assigment 4</br>
+Assigment 5</br>
 <!--[Assigment 2](Assignment_2/README.md)</br>
 [Assigment 3](Assignment_3/README.md)</br>
 [Assigment 4](Assignment_4/README.md)</br>
