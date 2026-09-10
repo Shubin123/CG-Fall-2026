@@ -4,6 +4,8 @@ Introduction to C++ and Basic Geometry
 The goal of this first assignment is to get familiar with CMake and C++ by implementing two basic algorithms in geometry.
 In the exercise, you will implement a function to test whether a point is inside a polygon in 2D.
 
+**Due: September 21 before the class (10 am Pacific)**
+
 ### Preparing the Environment
 
 Follow instructions the [generale rules](../Rules.md) to setup what you need for the assignment. You can also install [Meshlab](http://www.meshlab.net/) to visualize the datasets (point cloud and polygons) that you will be using in this assignment.
