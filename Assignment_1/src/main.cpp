@@ -260,17 +260,17 @@ int main(int argc, char *argv[])
     save_xyz("output.xyz", result);
 
     ////////////////////////////////////////////////////////////////////////////////
-    // Eigen
+    // Eigen matrix testing;
+     
+    // Matrix3d A;
 
-    Matrix3d A;
+    // A << 1, 2, 3,
+    //      4, 5, 6,
+    //      7, 8, 9;
 
-    A << 1, 2, 3,
-         4, 5, 6,
-         7, 8, 9;
+    // auto B = A.colPivHouseholderQr();
 
-    auto B = A.colPivHouseholderQr();
-
-    std::cout << A << std::endl;
+    // std::cout << A << std::endl;
 
     return 0;
 }
