@@ -72,9 +72,14 @@ void raytrace_sphere()
             }
         }
     }
-
+MatrixXd R = MatrixXd::Zero(800, 800);
+    // MatrixXd G = MatrixXd::Zero(800, 800);
+    // MatrixXd B = MatrixXd::Zero(800, 800);
+    
+    MatrixXd G = MatrixXd::Zero(0, 800);
+    
     // Save to png
-    write_matrix_to_png(C, C, C, A, filename);
+    write_matrix_to_png(R, C, C, A, filename);
 }
 
 void raytrace_parallelogram()
