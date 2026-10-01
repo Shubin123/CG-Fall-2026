@@ -46,20 +46,25 @@ void raytrace_sphere()
             const Vector3d ray_origin = pixel_center;
             const Vector3d ray_direction = camera_view_direction;
 
-            // Intersect with the sphere
-            // NOTE: this is a special case of a sphere centered in the origin and for orthographic rays aligned with the z axis
-            // TODO change this with the generic case
-            Vector2d ray_on_xy(ray_origin(0), ray_origin(1));
+            // Generic ray-sphere intersection
+            // Ray: p(t) = ray_origin + t * ray_direction
+            // Sphere: ||p - sphere_center||^2 = sphere_radius^2
+            const Vector3d oc = ray_origin - sphere_center;
+            const double a = ray_direction.dot(ray_direction);
+            const double b = 2.0 * ray_direction.dot(oc);
+            const double c = oc.dot(oc) - sphere_radius * sphere_radius;
+            const double discriminant = b * b - 4.0 * a * c;
 
-            if (ray_on_xy.norm() < sphere_radius)
+            if (discriminant >= 0)
             {
+                // Nearest intersection (smallest positive t)
+                const double t = (-b - sqrt(discriminant)) / (2.0 * a);
+
                 // The ray hit the sphere, compute the exact intersection point
-                Vector3d ray_intersection(
-                    ray_on_xy(0), ray_on_xy(1),
-                    sqrt(sphere_radius * sphere_radius - ray_on_xy.squaredNorm()));
+                Vector3d ray_intersection = ray_origin + t * ray_direction;
 
                 // Compute normal at the intersection point
-                Vector3d ray_normal = ray_intersection.normalized();
+                Vector3d ray_normal = (ray_intersection - sphere_center).normalized();
 
                 // Simple diffuse model
                 C(i, j) = (light_position - ray_intersection).normalized().transpose() * ray_normal;
@@ -72,14 +77,9 @@ void raytrace_sphere()
             }
         }
     }
-MatrixXd R = MatrixXd::Zero(800, 800);
-    // MatrixXd G = MatrixXd::Zero(800, 800);
-    // MatrixXd B = MatrixXd::Zero(800, 800);
-    
-    MatrixXd G = MatrixXd::Zero(0, 800);
-    
+
     // Save to png
-    write_matrix_to_png(R, C, C, A, filename);
+    write_matrix_to_png(C, C, C, A, filename);
 }
 
 void raytrace_parallelogram()
@@ -116,15 +116,32 @@ void raytrace_parallelogram()
             const Vector3d ray_origin = pixel_center;
             const Vector3d ray_direction = camera_view_direction;
 
-            // TODO: Check if the ray intersects with the parallelogram
-            if (true)
-            {
-                // TODO: The ray hit the parallelogram, compute the exact intersection
-                // point
-                Vector3d ray_intersection(0, 0, 0);
+            // Ray-parallelogram intersection
+            // Solve: ray_origin + t * ray_direction = pgram_origin + u * pgram_u + v * pgram_v
+            // Rearrange: [pgram_u | pgram_v | -ray_direction] * [u; v; t] = ray_origin - pgram_origin
+            Matrix3d M;
+            M.col(0) = pgram_u;
+            M.col(1) = pgram_v;
+            M.col(2) = -ray_direction;
 
-                // TODO: Compute normal at the intersection point
-                Vector3d ray_normal = ray_intersection.normalized();
+            const Vector3d rhs = ray_origin - pgram_origin;
+            const Vector3d uvt = M.colPivHouseholderQr().solve(rhs);
+            const double u_param = uvt(0);
+            const double v_param = uvt(1);
+            const double t = uvt(2);
+
+            // Check that the intersection is inside the parallelogram and in front of the ray
+            if (u_param >= 0 && u_param <= 1 && v_param >= 0 && v_param <= 1 && t > 0)
+            {
+                // The ray hit the parallelogram, compute the exact intersection point
+                Vector3d ray_intersection = ray_origin + t * ray_direction;
+
+                // Compute normal at the intersection point (constant across the parallelogram)
+                Vector3d ray_normal = pgram_u.cross(pgram_v).normalized();
+
+                // Ensure the normal faces toward the camera
+                if (ray_normal.dot(-ray_direction) < 0)
+                    ray_normal = -ray_normal;
 
                 // Simple diffuse model
                 C(i, j) = (light_position - ray_intersection).normalized().transpose() * ray_normal;
@@ -158,7 +175,7 @@ void raytrace_perspective()
     const Vector3d x_displacement(2.0 / C.cols(), 0, 0);
     const Vector3d y_displacement(0, -2.0 / C.rows(), 0);
 
-    // TODO: Parameters of the parallelogram (position of the lower-left corner + two sides)
+    // Parameters of the parallelogram (position of the lower-left corner + two sides)
     const Vector3d pgram_origin(-0.5, -0.5, 0);
     const Vector3d pgram_u(1, 0.4, 0);
     const Vector3d pgram_v(0, 0.7, -10);
@@ -172,18 +189,33 @@ void raytrace_perspective()
         {
             const Vector3d pixel_center = image_origin + double(i) * x_displacement + double(j) * y_displacement;
 
-            // TODO: Prepare the ray (origin point and direction)
-            const Vector3d ray_origin = pixel_center;
-            const Vector3d ray_direction = camera_view_direction;
+            // Perspective: ray originates from camera, direction goes through pixel center
+            const Vector3d ray_origin = camera_origin;
+            const Vector3d ray_direction = (pixel_center - camera_origin).normalized();
 
-            // TODO: Check if the ray intersects with the parallelogram
-            if (true)
+            // Ray-parallelogram intersection
+            Matrix3d M;
+            M.col(0) = pgram_u;
+            M.col(1) = pgram_v;
+            M.col(2) = -ray_direction;
+
+            const Vector3d rhs = ray_origin - pgram_origin;
+            const Vector3d uvt = M.colPivHouseholderQr().solve(rhs);
+            const double u_param = uvt(0);
+            const double v_param = uvt(1);
+            const double t = uvt(2);
+
+            if (u_param >= 0 && u_param <= 1 && v_param >= 0 && v_param <= 1 && t > 0)
             {
-                // TODO: The ray hit the parallelogram, compute the exact intersection point
-                Vector3d ray_intersection(0, 0, 0);
+                // The ray hit the parallelogram, compute the exact intersection point
+                Vector3d ray_intersection = ray_origin + t * ray_direction;
 
-                // TODO: Compute normal at the intersection point
-                Vector3d ray_normal = ray_intersection.normalized();
+                // Compute normal at the intersection point
+                Vector3d ray_normal = pgram_u.cross(pgram_v).normalized();
+
+                // Ensure the normal faces toward the camera
+                if (ray_normal.dot(-ray_direction) < 0)
+                    ray_normal = -ray_normal;
 
                 // Simple diffuse model
                 C(i, j) = (light_position - ray_intersection).normalized().transpose() * ray_normal;
@@ -206,7 +238,9 @@ void raytrace_shading()
     std::cout << "Simple ray tracer, one sphere with different shading" << std::endl;
 
     const std::string filename("shading.png");
-    MatrixXd C = MatrixXd::Zero(800, 800); // Store the color
+    MatrixXd R = MatrixXd::Zero(800, 800); // Store red channel
+    MatrixXd G = MatrixXd::Zero(800, 800); // Store green channel
+    MatrixXd B = MatrixXd::Zero(800, 800); // Store blue channel
     MatrixXd A = MatrixXd::Zero(800, 800); // Store the alpha mask
 
     const Vector3d camera_origin(0, 0, 3);
@@ -228,38 +262,48 @@ void raytrace_shading()
 
     // Single light source
     const Vector3d light_position(-1, 1, 1);
-    const Vector3d light_intesity(1, 1, 1);
+    const Vector3d light_intensity(1, 1, 1);
     double ambient = 0.1;
 
-    for (unsigned i = 0; i < C.cols(); ++i)
+    for (unsigned i = 0; i < A.cols(); ++i)
     {
-        for (unsigned j = 0; j < C.rows(); ++j)
+        for (unsigned j = 0; j < A.rows(); ++j)
         {
             const Vector3d pixel_center = image_origin + double(i) * x_displacement + double(j) * y_displacement;
 
-            // TODO: Prepare the ray (origin point and direction)
-            const Vector3d ray_origin = pixel_center;
-            const Vector3d ray_direction = camera_view_direction;
+            // Perspective ray
+            const Vector3d ray_origin = camera_origin;
+            const Vector3d ray_direction = (pixel_center - camera_origin).normalized();
 
-            // Intersect with the sphere
-            // TODO: implement the generic ray sphere intersection
-            if (true)
+            // Generic ray-sphere intersection
+            const Vector3d oc = ray_origin - sphere_center;
+            const double a = ray_direction.dot(ray_direction);
+            const double b_coeff = 2.0 * ray_direction.dot(oc);
+            const double c = oc.dot(oc) - sphere_radius * sphere_radius;
+            const double discriminant = b_coeff * b_coeff - 4.0 * a * c;
+
+            if (discriminant >= 0)
             {
-                // TODO: The ray hit the sphere, compute the exact intersection point
-                Vector3d ray_intersection(0, 0, 0);
+                const double t = (-b_coeff - sqrt(discriminant)) / (2.0 * a);
 
-                // TODO: Compute normal at the intersection point
-                Vector3d ray_normal = ray_intersection.normalized();
+                // Compute exact intersection point
+                Vector3d ray_intersection = ray_origin + t * ray_direction;
 
-                // TODO: Add shading parameter here
-                const double diffuse = (light_position - ray_intersection).normalized().dot(ray_normal);
-                const double specular = (light_position - ray_intersection).normalized().dot(ray_normal);
+                // Compute normal at the intersection point
+                Vector3d ray_normal = (ray_intersection - sphere_center).normalized();
 
-                // Simple diffuse model
-                C(i, j) = ambient + diffuse + specular;
+                // Blinn-Phong shading
+                const Vector3d l = (light_position - ray_intersection).normalized(); // light direction
+                const Vector3d v = (camera_origin - ray_intersection).normalized();  // view direction
+                const Vector3d h = (l + v).normalized();                             // half-vector
 
-                // Clamp to zero
-                C(i, j) = std::max(C(i, j), 0.);
+                const double diffuse = std::max(0.0, ray_normal.dot(l));
+                const double specular = std::pow(std::max(0.0, ray_normal.dot(h)), specular_exponent);
+
+                // Per-channel color: ambient + diffuse + specular
+                R(i, j) = std::max(0.0, ambient * diffuse_color(0) + diffuse * diffuse_color(0) * light_intensity(0) + specular * specular_color(0) * light_intensity(0));
+                G(i, j) = std::max(0.0, ambient * diffuse_color(1) + diffuse * diffuse_color(1) * light_intensity(1) + specular * specular_color(1) * light_intensity(1));
+                B(i, j) = std::max(0.0, ambient * diffuse_color(2) + diffuse * diffuse_color(2) * light_intensity(2) + specular * specular_color(2) * light_intensity(2));
 
                 // Disable the alpha mask for this pixel
                 A(i, j) = 1;
@@ -268,7 +312,7 @@ void raytrace_shading()
     }
 
     // Save to png
-    write_matrix_to_png(C, C, C, A, filename);
+    write_matrix_to_png(R, G, B, A, filename);
 }
 
 int main()
